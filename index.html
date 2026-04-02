@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FinSight AI — Conversational Market Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #060810;
+    --surface: #0c1020;
+    --border: rgba(255,255,255,0.07);
+    --cyan: #00f5d4;
+    --cyan-dim: rgba(0,245,212,0.12);
+    --cyan-glow: rgba(0,245,212,0.35);
+    --gold: #f5c842;
+    --red: #ff4d6d;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --card: rgba(255,255,255,0.03);
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 12px; height: 12px;
+    background: var(--cyan);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9999;
+    transform: translate(-50%,-50%);
+    transition: transform 0.1s ease, background 0.2s;
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid var(--cyan);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none; z-index: 9998;
+    transform: translate(-50%,-50%);
+    transition: transform 0.18s ease, opacity 0.2s;
+    opacity: 0.5;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    pointer-events: none;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 4rem;
+    background: rgba(6,8,16,0.7);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    animation: fadeDown 0.8s ease both;
+  }
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:none; } }
+
+  .nav-logo {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em;
+    text-decoration: none; color: var(--text);
+  }
+  .nav-logo .dot { width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 var(--cyan-glow);} 50%{box-shadow:0 0 0 6px transparent;} }
+
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--cyan); }
+
+  .nav-cta {
+    background: transparent; border: 1px solid var(--cyan);
+    color: var(--cyan); padding: 0.55rem 1.4rem; font-family: var(--font-display);
+    font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    cursor: none; transition: all 0.25s; text-decoration: none;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .nav-cta:hover { background: var(--cyan); color: var(--bg); box-shadow: 0 0 24px var(--cyan-glow); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8rem 2rem 4rem;
+    position: relative; overflow: hidden; text-align: center;
+  }
+
+  .orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(120px); pointer-events: none; animation: drift 12s ease-in-out infinite alternate;
+  }
+  .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(0,245,212,0.15), transparent 70%); top: -150px; left: -100px; animation-duration: 14s; }
+  .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, rgba(245,200,66,0.08), transparent 70%); bottom: 0; right: -80px; animation-duration: 10s; animation-delay: -4s; }
+  .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,77,109,0.09), transparent 70%); top: 40%; left: 60%; animation-duration: 16s; animation-delay: -7s; }
+  @keyframes drift { from{transform:translate(0,0) scale(1);} to{transform:translate(40px,30px) scale(1.08);} }
+
+  .hero::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(0,245,212,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,212,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    border: 1px solid rgba(0,245,212,0.3); background: var(--cyan-dim);
+    padding: 0.35rem 1rem; border-radius: 99px;
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--cyan);
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2rem;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+  .hero-badge::before { content:'◈'; font-size: 0.6rem; }
+
+  .hero-headline {
+    font-size: clamp(3rem, 7vw, 6.5rem);
+    font-weight: 800; line-height: 0.95;
+    letter-spacing: -0.04em;
+    animation: fadeUp 0.8s 0.35s ease both;
+  }
+  .hero-headline .line-1 { display: block; color: var(--text); }
+  .hero-headline .line-2 {
+    display: block;
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--gold) 60%, var(--red) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero-headline .line-3 { display: block; color: var(--muted); font-size: 0.55em; font-weight: 600; margin-top: 0.4em; letter-spacing: -0.01em; }
+
+  .hero-sub {
+    max-width: 540px; color: var(--muted); font-size: 1rem; line-height: 1.7;
+    font-family: var(--font-mono); font-weight: 300; margin-top: 1.8rem;
+    animation: fadeUp 0.8s 0.5s ease both;
+  }
+
+  .hero-actions {
+    display: flex; gap: 1rem; margin-top: 2.5rem; flex-wrap: wrap; justify-content: center;
+    animation: fadeUp 0.8s 0.65s ease both;
+  }
+
+  .btn-primary {
+    background: var(--cyan); color: var(--bg);
+    padding: 0.8rem 2.2rem; font-family: var(--font-display);
+    font-size: 0.85rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+    border: none; cursor: none; text-decoration: none;
+    clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+    transition: all 0.25s; box-shadow: 0 0 30px var(--cyan-glow);
+    display: inline-flex; align-items: center; gap: 0.5rem;
+  }
+  .btn-primary:hover { box-shadow: 0 0 60px var(--cyan-glow), 0 0 120px rgba(0,245,212,0.15); transform: translateY(-2px); }
+
+  .btn-ghost {
+    background: transparent; color: var(--text);
+    padding: 0.8rem 2.2rem; font-family: var(--font-display);
+    font-size: 0.85rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    border: 1px solid var(--border); cursor: none; text-decoration: none;
+    clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+    transition: all 0.25s;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.04); }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:none; } }
+
+  /* TICKER */
+  .ticker {
+    background: var(--cyan-dim); border-top: 1px solid rgba(0,245,212,0.15); border-bottom: 1px solid rgba(0,245,212,0.15);
+    padding: 0.6rem 0; overflow: hidden; position: relative; z-index: 10;
+  }
+  .ticker-track {
+    display: flex; gap: 3rem; width: max-content;
+    animation: scrollTicker 30s linear infinite;
+    font-family: var(--font-mono); font-size: 0.75rem; color: var(--cyan); letter-spacing: 0.08em;
+  }
+  .ticker-track span::before { content: '▲ '; font-size: 0.6rem; }
+  .ticker-track span.down::before { content: '▼ '; color: var(--red); }
+  .ticker-track span.down { color: var(--red); }
+  @keyframes scrollTicker { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+
+  /* STATS */
+  .stats {
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 1px;
+    background: var(--border); margin: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  }
+  .stat {
+    background: var(--bg); padding: 3rem 2rem; text-align: center;
+    transition: background 0.3s;
+  }
+  .stat:hover { background: rgba(0,245,212,0.03); }
+  .stat-value {
+    font-size: 2.8rem; font-weight: 800; letter-spacing: -0.04em;
+    background: linear-gradient(135deg, var(--cyan), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .stat-label { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.4rem; }
+
+  section { position: relative; z-index: 1; }
+
+  .section-header { text-align: center; margin-bottom: 4rem; }
+  .section-tag {
+    font-family: var(--font-mono); font-size: 0.7rem; color: var(--cyan);
+    letter-spacing: 0.2em; text-transform: uppercase;
+    display: inline-block; margin-bottom: 1rem; opacity: 0.8;
+  }
+  .section-title {
+    font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.1;
+  }
+  .section-sub { color: var(--muted); font-family: var(--font-mono); font-weight: 300; margin-top: 0.8rem; font-size: 0.9rem; }
+
+  /* FEATURES */
+  .features { padding: 8rem 4rem; max-width: 1300px; margin: 0 auto; }
+  .features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); }
+
+  .feature-card {
+    background: var(--card); padding: 3rem;
+    transition: background 0.3s; position: relative; overflow: hidden;
+    border: 1px solid transparent;
+  }
+  .feature-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, var(--cyan-dim), transparent 60%);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .feature-card:hover { background: rgba(0,245,212,0.04); border-color: rgba(0,245,212,0.15); }
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    width: 48px; height: 48px; border: 1px solid rgba(0,245,212,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; margin-bottom: 1.5rem;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+    background: var(--cyan-dim);
+  }
+  .feature-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.6rem; letter-spacing: -0.02em; }
+  .feature-desc { color: var(--muted); font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7; font-weight: 300; }
+
+  /* DEMO TERMINAL */
+  .demo { padding: 8rem 4rem; max-width: 1000px; margin: 0 auto; }
+
+  .terminal {
+    background: #0a0e1a; border: 1px solid rgba(0,245,212,0.2);
+    border-radius: 4px; overflow: hidden;
+    box-shadow: 0 0 80px rgba(0,245,212,0.08), 0 40px 80px rgba(0,0,0,0.5);
+  }
+  .terminal-bar {
+    background: #111827; padding: 0.7rem 1rem;
+    display: flex; align-items: center; gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .td1{background:#ff5f57;} .td2{background:#ffbd2e;} .td3{background:#28ca41;}
+  .terminal-title { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-left: auto; margin-right: auto; }
+
+  .terminal-body { padding: 1.5rem 2rem; font-family: var(--font-mono); font-size: 0.83rem; line-height: 1.9; }
+  .t-prompt { color: var(--cyan); }
+  .t-user { color: var(--text); }
+  .t-system { color: var(--muted); font-size: 0.75rem; font-style: italic; }
+  .t-response { color: #a3e4d7; }
+  .t-data { color: var(--gold); }
+  .t-neg { color: var(--red); }
+  .cursor-blink { display: inline-block; width: 8px; height: 1em; background: var(--cyan); animation: blink 1s step-end infinite; vertical-align: text-bottom; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+  /* PRICING */
+  .pricing { padding: 8rem 4rem; max-width: 1100px; margin: 0 auto; }
+  .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+
+  .price-card {
+    background: var(--card); padding: 2.5rem 2rem;
+    position: relative; transition: background 0.3s;
+  }
+  .price-card.featured {
+    background: linear-gradient(180deg, rgba(0,245,212,0.07), rgba(0,245,212,0.02));
+    border: 1px solid rgba(0,245,212,0.25);
+  }
+  .price-card.featured::before {
+    content: 'MOST POPULAR';
+    position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+    background: var(--cyan); color: var(--bg);
+    font-family: var(--font-mono); font-size: 0.62rem; font-weight: 400; letter-spacing: 0.12em;
+    padding: 0.25rem 0.8rem;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .price-tier { font-family: var(--font-mono); font-size: 0.7rem; color: var(--cyan); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 1rem; }
+  .price-amount { font-size: 2.8rem; font-weight: 800; letter-spacing: -0.04em; }
+  .price-amount span { font-size: 1rem; color: var(--muted); font-weight: 400; }
+  .price-desc { color: var(--muted); font-family: var(--font-mono); font-size: 0.78rem; margin: 0.6rem 0 1.5rem; }
+  .price-features { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 2rem; }
+  .price-features li { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); display: flex; gap: 0.6rem; }
+  .price-features li::before { content: '→'; color: var(--cyan); flex-shrink: 0; }
+  .price-features li.dim::before { color: var(--border); }
+  .price-features li.dim { opacity: 0.4; }
+
+  .btn-plan {
+    width: 100%; padding: 0.75rem; font-family: var(--font-display); font-size: 0.8rem; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; cursor: none; border: none;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+    transition: all 0.25s;
+  }
+  .btn-plan.outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-plan.outline:hover { border-color: rgba(255,255,255,0.25); }
+  .btn-plan.fill { background: var(--cyan); color: var(--bg); box-shadow: 0 0 20px var(--cyan-glow); }
+  .btn-plan.fill:hover { box-shadow: 0 0 40px var(--cyan-glow); }
+
+  /* TESTIMONIALS */
+  .testimonials { padding: 8rem 4rem; max-width: 1100px; margin: 0 auto; }
+  .testi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border); }
+
+  .testi-card {
+    background: var(--card); padding: 2.5rem; transition: background 0.3s;
+    border: 1px solid transparent;
+  }
+  .testi-card:hover { background: rgba(0,245,212,0.03); border-color: rgba(0,245,212,0.1); }
+  .testi-quote { color: var(--text); font-size: 0.9rem; line-height: 1.75; margin-bottom: 1.5rem; font-style: italic; }
+  .testi-quote::before { content: '"'; color: var(--cyan); font-size: 1.5rem; line-height: 0; vertical-align: -0.4em; margin-right: 4px; }
+  .testi-author { display: flex; align-items: center; gap: 0.8rem; }
+  .testi-avatar {
+    width: 36px; height: 36px;
+    clip-path: polygon(4px 0%,100% 0%,calc(100% - 4px) 100%, 0% 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; font-weight: 800; background: var(--cyan-dim); color: var(--cyan);
+    flex-shrink: 0;
+  }
+  .testi-name { font-weight: 700; font-size: 0.85rem; }
+  .testi-role { color: var(--muted); font-family: var(--font-mono); font-size: 0.7rem; }
+
+  /* CTA BANNER */
+  .cta-banner {
+    margin: 0 4rem 6rem; border: 1px solid rgba(0,245,212,0.2);
+    background: linear-gradient(135deg, rgba(0,245,212,0.05), rgba(245,200,66,0.04));
+    padding: 5rem; text-align: center; position: relative; overflow: hidden;
+    clip-path: polygon(20px 0%, 100% 0%, calc(100% - 20px) 100%, 0% 100%);
+  }
+  .cta-banner::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(0,245,212,0.02) 40px, rgba(0,245,212,0.02) 41px);
+  }
+  .cta-banner h2 { font-size: clamp(2rem,4vw,3rem); font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.8rem; position: relative; }
+  .cta-banner p { color: var(--muted); font-family: var(--font-mono); font-weight: 300; margin-bottom: 2.5rem; font-size: 0.9rem; position: relative; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border); padding: 3rem 4rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted);
+  }
+  footer .foot-logo { font-family: var(--font-display); font-weight: 800; font-size: 1rem; color: var(--text); }
+  footer .foot-links { display: flex; gap: 2rem; }
+  footer .foot-links a { color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  footer .foot-links a:hover { color: var(--cyan); }
+
+  /* SCROLL ANIMATIONS */
+  .reveal {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  @media (max-width:900px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links, .nav-cta { display: none; }
+    .hero { padding: 6rem 1.5rem 3rem; }
+    .stats { grid-template-columns: repeat(2,1fr); }
+    .features, .demo, .pricing, .testimonials { padding: 5rem 1.5rem; }
+    .features-grid, .pricing-grid, .testi-grid { grid-template-columns: 1fr; }
+    .cta-banner { margin: 0 1.5rem 4rem; padding: 3rem 2rem; clip-path: none; }
+    footer { flex-direction: column; gap: 1.5rem; text-align: center; padding: 2rem 1.5rem; }
+    .foot-links { flex-wrap: wrap; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo"><span class="dot"></span> FinSight AI</a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#demo">Demo</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <a href="#pricing" class="nav-cta">Get Access</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="hero-badge">Conversational Market Intelligence · v2.0</div>
+
+  <h1 class="hero-headline">
+    <span class="line-1">Earnings Calls.</span>
+    <span class="line-2">Decoded Instantly.</span>
+    <span class="line-3">Ask anything about any company, any quarter.</span>
+  </h1>
+
+  <p class="hero-sub">
+    Upload earnings call audio. FinSight AI transcribes, indexes, and lets you interrogate the data in plain English — powered by Whisper, GPT-4, and live Yahoo Finance signals.
+  </p>
+
+  <div class="hero-actions">
+    <a href="#demo" class="btn-primary">▶ Watch Demo</a>
+    <a href="#pricing" class="btn-ghost">View Pricing</a>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-track">
+    <span>AAPL +2.34%</span>
+    <span class="down">TSLA -1.87%</span>
+    <span>NVDA +5.12%</span>
+    <span>MSFT +0.93%</span>
+    <span class="down">META -0.44%</span>
+    <span>GOOGL +1.67%</span>
+    <span class="down">AMZN -0.28%</span>
+    <span>AMD +3.55%</span>
+    <span>NFLX +2.01%</span>
+    <span class="down">INTC -2.13%</span>
+    <span>AAPL +2.34%</span>
+    <span class="down">TSLA -1.87%</span>
+    <span>NVDA +5.12%</span>
+    <span>MSFT +0.93%</span>
+    <span class="down">META -0.44%</span>
+    <span>GOOGL +1.67%</span>
+    <span class="down">AMZN -0.28%</span>
+    <span>AMD +3.55%</span>
+    <span>NFLX +2.01%</span>
+    <span class="down">INTC -2.13%</span>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats reveal">
+  <div class="stat"><div class="stat-value">98.7%</div><div class="stat-label">Transcription Accuracy</div></div>
+  <div class="stat"><div class="stat-value">4.2s</div><div class="stat-label">Avg Query Response</div></div>
+  <div class="stat"><div class="stat-value">12K+</div><div class="stat-label">Calls Processed</div></div>
+  <div class="stat"><div class="stat-value">3 APIs</div><div class="stat-label">Live Data Sources</div></div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-header reveal">
+    <div class="section-tag">// CAPABILITIES</div>
+    <h2 class="section-title">Intelligence that actually<br/>understands finance</h2>
+    <p class="section-sub">Not just search. Deep contextual reasoning over earnings data.</p>
+  </div>
+
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <div class="feature-icon">🎙️</div>
+      <div class="feature-title">Whisper-Powered Transcription</div>
+      <div class="feature-desc">OpenAI Whisper converts your earnings call audio to indexed, searchable text with speaker diarization and timestamp precision.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <div class="feature-title">GPT-4 Q&A Engine</div>
+      <div class="feature-desc">Ask natural language questions — "What did the CFO say about Q3 margins?" — and get grounded, cited answers from the transcript.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📈</div>
+      <div class="feature-title">Live Market Context</div>
+      <div class="feature-desc">Yahoo Finance API injects real-time price, EPS, P/E, and revenue data alongside every query for instant cross-referencing.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">FastAPI Backend</div>
+      <div class="feature-desc">Sub-5 second end-to-end pipeline built on FastAPI with async processing, vector embeddings, and streamed responses.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <div class="feature-title">Sentiment Analysis</div>
+      <div class="feature-desc">Automatic bullish / bearish sentiment scoring across management tone, forward guidance, and analyst Q&A sections.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Comparative Reports</div>
+      <div class="feature-desc">Compare multiple quarters side-by-side. Surface trend shifts, narrative changes, and key metric deltas automatically.</div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO TERMINAL -->
+<section class="demo" id="demo">
+  <div class="section-header reveal">
+    <div class="section-tag">// LIVE DEMO</div>
+    <h2 class="section-title">See it think in real-time</h2>
+    <p class="section-sub">A live conversation with FinSight AI on NVIDIA's Q3 2024 earnings call.</p>
+  </div>
+
+  <div class="terminal reveal">
+    <div class="terminal-bar">
+      <div class="terminal-dot td1"></div>
+      <div class="terminal-dot td2"></div>
+      <div class="terminal-dot td3"></div>
+      <span class="terminal-title">finsight-ai — NVDA_Q3_2024.mp3 — indexed</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="t-system">▸ Processing NVDA_Q3_2024.mp3 · Whisper transcription complete · 1,842 segments indexed</span></div>
+      <br/>
+      <div><span class="t-prompt">you@finsight › </span><span class="t-user">What guidance did Jensen give on data center revenue for next quarter?</span></div>
+      <br/>
+      <div><span class="t-response">FinSight AI  Based on segment 847 (1:12:34), Jensen Huang projected data center revenue of approximately $17–18B for Q4, citing "unprecedented demand for Hopper architecture" and noting supply constraints beginning to ease. He emphasized inference workloads as the new growth vector.</span></div>
+      <br/>
+      <div><span class="t-system">▸ Cross-referencing Yahoo Finance · NVDA live: $875.40 · P/E 68.2x · EPS beat +12.4%</span></div>
+      <br/>
+      <div><span class="t-data">Market Context: Stock surged +9.3% after-hours following this guidance. Analyst consensus revised to $18.2B. Consensus rating: Strong Buy (42/47 analysts).</span></div>
+      <br/>
+      <div><span class="t-prompt">you@finsight › </span><span class="t-user">What's the sentiment on gross margins?</span></div>
+      <br/>
+      <div><span class="t-response">FinSight AI  Management tone on gross margins: </span><span class="t-data">Bullish ↑ (score 0.84/1.0)</span><span class="t-response">. CFO Colette Kress guided 74–75% non-GAAP gross margins for Q4, up from </span><span class="t-neg">74.0% reported this quarter</span><span class="t-response">. Noted mix-shift toward higher-margin inference products as a tailwind.</span></div>
+      <br/>
+      <div><span class="t-prompt">you@finsight › </span><span class="cursor-blink"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="section-header reveal">
+    <div class="section-tag">// PRICING</div>
+    <h2 class="section-title">Transparent. Scalable.<br/>No surprises.</h2>
+    <p class="section-sub">Cancel anytime. All plans include core FinSight AI capabilities.</p>
+  </div>
+
+  <div class="pricing-grid reveal">
+    <div class="price-card">
+      <div class="price-tier">Analyst</div>
+      <div class="price-amount">$29<span>/mo</span></div>
+      <div class="price-desc">For individual researchers & investors.</div>
+      <ul class="price-features">
+        <li>10 calls/month</li>
+        <li>GPT-4 Q&A · 500 queries</li>
+        <li>Live Yahoo Finance data</li>
+        <li>Basic sentiment scoring</li>
+        <li class="dim">Comparative reports</li>
+        <li class="dim">API access</li>
+      </ul>
+      <button class="btn-plan outline">Get Started</button>
+    </div>
+    <div class="price-card featured">
+      <div class="price-tier">Pro</div>
+      <div class="price-amount">$79<span>/mo</span></div>
+      <div class="price-desc">For fund analysts & power users.</div>
+      <ul class="price-features">
+        <li>Unlimited calls</li>
+        <li>GPT-4 Q&A · Unlimited</li>
+        <li>Live Yahoo Finance data</li>
+        <li>Advanced sentiment + trends</li>
+        <li>Comparative reports</li>
+        <li class="dim">API access</li>
+      </ul>
+      <button class="btn-plan fill">Start Free Trial</button>
+    </div>
+    <div class="price-card">
+      <div class="price-tier">Enterprise</div>
+      <div class="price-amount">Custom</div>
+      <div class="price-desc">For hedge funds & institutions.</div>
+      <ul class="price-features">
+        <li>Unlimited everything</li>
+        <li>Private model deployment</li>
+        <li>Custom data integrations</li>
+        <li>SLA + compliance support</li>
+        <li>White-label option</li>
+        <li>Full API access</li>
+      </ul>
+      <button class="btn-plan outline">Contact Sales</button>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="section-header reveal">
+    <div class="section-tag">// WHAT ANALYSTS SAY</div>
+    <h2 class="section-title">Trusted by the<br/>sharpest minds in markets</h2>
+  </div>
+
+  <div class="testi-grid reveal">
+    <div class="testi-card">
+      <p class="testi-quote">FinSight cut my earnings prep time from 4 hours to 20 minutes. The GPT-4 Q&A doesn't just find keywords — it actually understands management language.</p>
+      <div class="testi-author">
+        <div class="testi-avatar">RK</div>
+        <div>
+          <div class="testi-name">Rohan Kapoor</div>
+          <div class="testi-role">Equity Analyst · Morgan Stanley</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <p class="testi-quote">The sentiment scores are eerily accurate. It flagged management hesitation on forward guidance three quarters before a major guidance cut. Game-changing signal.</p>
+      <div class="testi-author">
+        <div class="testi-avatar">SA</div>
+        <div>
+          <div class="testi-name">Sarah Almeida</div>
+          <div class="testi-role">Portfolio Manager · Citadel</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card">
+      <p class="testi-quote">Finally an AI tool built by someone who actually understands how earnings calls work. The comparative reports across quarters are incredibly well-structured.</p>
+      <div class="testi-author">
+        <div class="testi-avatar">JL</div>
+        <div>
+          <div class="testi-name">James Liu</div>
+          <div class="testi-role">Quant Researcher · Two Sigma</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<div class="cta-banner reveal">
+  <h2>Stop reading. Start asking.</h2>
+  <p>Your next alpha insight is one question away.</p>
+  <a href="#" class="btn-primary" style="display:inline-flex;">▶ Start for Free — No card required</a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-logo">FinSight AI</div>
+  <div class="foot-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">API Docs</a>
+    <a href="#">GitHub</a>
+    <a href="#">Contact</a>
+  </div>
+  <div>© 2025 FinSight AI. Built with FastAPI · Whisper · GPT-4.</div>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursor-ring');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+    ring.style.left = e.clientX + 'px';
+    ring.style.top = e.clientY + 'px';
+  });
+
+  // Scroll reveal animation
+  const reveals = document.querySelectorAll('.reveal');
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 60);
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  reveals.forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
